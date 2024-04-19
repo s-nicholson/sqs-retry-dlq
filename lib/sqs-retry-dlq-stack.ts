@@ -25,6 +25,7 @@ export class SqsRetryDlqStack extends Stack {
       functionName: "message-handler-fn",
       code: lambda.Code.fromInline(`
         exports.handler = async (event) => {
+          console.log("Messages in batch: " + event.Records.length);
           let batchItemFailures = [];
           for (const message of event.Records) {
             try {
@@ -35,6 +36,7 @@ export class SqsRetryDlqStack extends Stack {
               batchItemFailures.push({ itemIdentifier: message.messageId });
             }
           }
+          console.log("Failures in batch: " + batchItemFailures.length);
           return { batchItemFailures };
         };
 
@@ -49,7 +51,9 @@ export class SqsRetryDlqStack extends Stack {
     });
 
     fn.addEventSource(new SqsEventSource(queue, {
-      reportBatchItemFailures: true
+      reportBatchItemFailures: true,
+      batchSize: 5,
+      maxBatchingWindow: Duration.seconds(10)
     }));
   }
 }
